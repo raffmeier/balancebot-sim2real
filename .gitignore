@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+MUJOCO_LOG.TXT
+RL_training/runs/
+RL_training/logs/
+.pio/
+.vscode/
+Firmware/BalancingBot_Firmware/include/wifi_config.h
+

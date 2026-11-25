@@ -1,0 +1,64 @@
+<mujoco model="balance_robot">
+
+  <!-- Robot only: env.py loads it via scene.xml, mjlab directly (timestep in its MujocoCfg) -->
+  <compiler angle="radian"/>
+
+  <asset>
+
+    <mesh name="chassis_mesh" file="meshes/body.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="wheel_mesh" file="meshes/wheel.stl" scale="0.001 0.001 0.001"/>
+
+  </asset>
+ 
+  <worldbody>
+ 
+    <body name="chassis" pos="0 0 0.0425">
+        <!-- free joint: chassis can translate and rotate freely in 3D -->
+        <freejoint name="chassis_free"/>
+        <inertial pos="0 0 0.0445" mass="0.468" diaginertia="1844.199e-6 718.798e-6 1310.52433e-6"/>
+        <geom name="chassis_collision" type="box" pos="0 0 0.082" size="0.035 0.1 0.03" rgba="0.2 0.4 0.8 0.3"/>  <!-- invisible, does collision -->
+        <geom type="mesh" mesh="chassis_mesh" pos="0 0 0" euler="0 0 0" contype="0" conaffinity="0" mass="0" rgba="0.2 0.4 0.8 1"/>
+    
+        <!-- IMU mounting site -->
+        <site name="imu_site" pos="-0.0215 0.0313 0.0946" size="0.005"/>
+ 
+        <body name="wheel_left" pos="0 0.0863 0">
+        <joint name="left_wheel_joint" type="hinge" axis="0 1 0" damping="0.0001" frictionloss="0.001"/>
+        <inertial pos="0 -0.0061 0" mass="0.051" diaginertia="33.656e-6 60.262e-6 33.74697e-6"/>
+        <geom name="wheel_left_collision" type="cylinder" size="0.0425 0.01575" pos="0 -0.00675 0"
+                euler="1.5708 0 0" friction="1.5 0.01 0.0001"
+                rgba="0.15 0.15 0.15 0.3"/>
+        <geom type="mesh" mesh="wheel_mesh" pos="0 -0.0863 0" euler="0 0 0" 
+                contype="0" conaffinity="0" mass="0" rgba="0.15 0.15 0.15 1"/>
+        </body>
+ 
+        <body name="wheel_right" pos="0 -0.0863 0">
+        <joint name="right_wheel_joint" type="hinge" axis="0 1 0" damping="0.0001" frictionloss="0.001"/>
+        <inertial pos="0 0.0061 0" mass="0.051" diaginertia="33.656e-6 60.262e-6 33.74697e-6"/>
+        <geom name="wheel_right_collision" type="cylinder" size="0.0425 0.01575" pos="0 0.00675 0"
+                euler="1.5708 0 0" friction="1.5 0.01 0.0001"
+                rgba="0.15 0.15 0.15 0.3"/>
+        <geom type="mesh" mesh="wheel_mesh" pos="0 0.0863 0" euler="0 0 3.141" 
+                contype="0" conaffinity="0" mass="0" rgba="0.15 0.15 0.15 1"/>
+        </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <motor name="left_motor" joint="left_wheel_joint" gear="1"/>
+    <motor name="right_motor" joint="right_wheel_joint" gear="1"/>
+  </actuator>
+ 
+  <!-- mjlab ignores the noise attribute: the noise is added in balancebot_env_cfg.py -->
+  <sensor>
+    <gyro name="imu_gyro" site="imu_site" noise="0.05"/>             <!-- rad/s -->
+    <accelerometer name="imu_accel" site="imu_site" noise="0.4"/>    <!-- m/s^2 -->
+
+    <!-- Wheel encoders (joint position and velocity) -->
+    <jointpos name="left_wheel_pos" joint="left_wheel_joint"/>
+    <jointpos name="right_wheel_pos" joint="right_wheel_joint"/>
+    <jointvel name="left_wheel_vel" joint="left_wheel_joint"/>
+    <jointvel name="right_wheel_vel" joint="right_wheel_joint"/>
+  </sensor>
+
+</mujoco>

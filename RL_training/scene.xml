@@ -1,0 +1,18 @@
+<mujoco model="balance_robot_scene">
+  <option timestep="0.005" gravity="0 0 -9.81" integrator="implicitfast"/>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.5 0.7 1" rgb2="0.95 0.95 1" width="256" height="256"/>
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.2 0.3 0.4" rgb2="0.3 0.4 0.5"
+             width="512" height="512" mark="cross" markrgb="0.8 0.8 0.8"/>
+    <material name="grid" texture="grid" texrepeat="10 10" reflectance="0" specular="0" shininess="0.5"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" diffuse="0.8 0.8 0.8"/>
+    <light directional="true" dir="0 0 -1"/>
+    <geom name="ground" type="plane" size="10 10 0.1" material="grid"/>
+  </worldbody>
+
+  <include file="balancebot.xml"/>
+</mujoco>

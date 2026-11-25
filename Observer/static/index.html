@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BalancingBot Observer</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/vendor/uPlot.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/vendor/uPlot.iife.min.js"></script>
+  <script type="importmap">{ "imports": { "three": "/static/vendor/three.module.js" } }</script>
+  <script type="module" src="/static/js/main.js"></script>
+</head>
+<body>
+  <header>
+    <h1>BalancingBot Observer</h1>
+    <div class="badges">
+      <span class="badge" id="badge-bridge"><span class="icon"></span><span class="label"></span></span>
+      <span class="badge" id="badge-robot"><span class="icon"></span><span class="label"></span></span>
+      <span class="badge" id="badge-balancing"><span class="icon"></span><span class="label"></span></span>
+      <span class="badge" id="badge-imu"><span class="icon"></span><span class="label"></span></span>
+    </div>
+  </header>
+
+  <div class="banner" id="version-error" hidden></div>
+
+  <div class="toolbar">
+    <label>Window
+      <select id="window">
+        <option value="5">5 s</option>
+        <option value="10" selected>10 s</option>
+        <option value="30">30 s</option>
+        <option value="60">60 s</option>
+      </select>
+    </label>
+    <label title="Centered moving average over this width, no lag. Tiles and 3D stay raw.">Smoothing
+      <select id="smoothing">
+        <option value="0" selected>off</option>
+        <option value="0.025">25 ms</option>
+        <option value="0.05">50 ms</option>
+        <option value="0.1">100 ms</option>
+        <option value="0.25">250 ms</option>
+        <option value="0.5">500 ms</option>
+      </select>
+    </label>
+    <button id="freeze" aria-pressed="false" title="Shortcut: F. While frozen, drag across a chart to zoom, double-click to reset.">Freeze charts</button>
+    <span class="sep"></span>
+    <label class="check"><input type="checkbox" id="follow" checked> Camera follows robot</label>
+    <button id="reset-origin" title="The robot's current position becomes the origin (heading from the gyro drifts slowly)">Reset origin</button>
+    <span class="sep"></span>
+    <button id="record" class="record" aria-pressed="false" title="Saves to RL_training/logs, same format as robot_log.py">● Record</button>
+    <label>Log <select id="log-select"></select></label>
+    <button id="log-open">Open</button>
+  </div>
+
+  <div class="notice" id="notice" hidden><span class="text"></span> <button>Open</button></div>
+
+  <div class="replay" id="replay" hidden>
+    <span class="tag">Replay</span>
+    <span class="name" id="replay-name"></span>
+    <button id="play" title="Shortcut: K">▶ Play</button>
+    <select id="speed" title="Playback speed">
+      <option value="0.1">0.1×</option>
+      <option value="0.25">0.25×</option>
+      <option value="0.5">0.5×</option>
+      <option value="1" selected>1×</option>
+      <option value="2">2×</option>
+      <option value="4">4×</option>
+    </select>
+    <div class="timeline" title="Red: controller off. J / L: 1 s back / forward, comma / period: one step">
+      <canvas id="timeline-strip"></canvas>
+      <input type="range" id="scrub" min="0" max="1" step="0.005" value="0">
+    </div>
+    <span class="time" id="replay-time"></span>
+    <button id="back-live">Back to live</button>
+  </div>
+
+  <div class="tiles">
+    <div class="tile" id="tile-pitch"><span class="name">Pitch</span><span class="value"></span><span class="detail"></span></div>
+    <div class="tile" id="tile-speed"><span class="name">Speed</span><span class="value"></span><span class="detail"></span></div>
+    <div class="tile" id="tile-yaw"><span class="name">Yaw rate</span><span class="value"></span><span class="detail"></span></div>
+    <div class="tile" id="tile-control"><span class="name">Control</span><span class="value"></span><span class="detail"></span></div>
+    <div class="tile" id="tile-foc"><span class="name">FOC</span><span class="value"></span><span class="detail"></span></div>
+    <div class="tile" id="tile-compute"><span class="name">Step time</span><span class="value"></span><span class="detail"></span></div>
+    <div class="tile" id="tile-loss"><span class="name">Link</span><span class="value"></span><span class="detail"></span></div>
+  </div>
+
+  <main>
+    <div class="side">
+      <section class="card twin-card">
+        <div id="twin">
+          <div class="twin-off" id="twin-off">Motors off</div>
+          <div class="twin-legend"><span class="cmd">command</span><span class="act">actual</span> → speed, ↑ yaw rate</div>
+        </div>
+      </section>
+      <section class="card drive" id="drive">
+        <h3>Drive <span class="unit">live robot</span></h3>
+        <div class="motors">
+          <button id="motors-off" class="danger" title="The robot falls over. Shortcut: Space, works any time">Motors off <kbd>Space</kbd></button>
+          <button id="motors-arm" title="Balancing restarts once it is held upright">Arm</button>
+          <span class="badge" id="motors-state"><span class="icon"></span><span class="label"></span></span>
+        </div>
+        <label class="check enable"><input type="checkbox" id="drive-enable"> Enable driving
+          <span class="unit">W A S D / arrow keys, or drag the pad</span></label>
+        <div class="drive-row">
+          <div class="pad" id="pad" title="Up: forward, left: turn left"><div class="knob" id="knob"></div></div>
+          <div class="limits">
+            <label>Max speed <input type="range" id="v-max" min="0.05" max="1" step="0.05" value="0.15">
+              <output id="v-max-out"></output></label>
+            <label>Max yaw rate <input type="range" id="w-max" min="0.25" max="3" step="0.25" value="1">
+              <output id="w-max-out"></output></label>
+            <div class="readout">Sending <b id="cmd-sent">–</b></div>
+            <div class="readout">Robot uses <b id="cmd-robot">–</b></div>
+          </div>
+        </div>
+        <p class="note">The robot clamps commands to the policy's training range (POLICY_V_CMD_MAX /
+          POLICY_YAWRATE_CMD_MAX in model.h, 0.3 m/s and 2 rad/s for older exports) and goes back to 0
+          300 ms after the last one, e.g. when this tab closes.</p>
+      </section>
+      <section class="card">
+        <h3>Policy input <span class="unit">normalized</span></h3>
+        <div id="policy-in"></div>
+        <p class="note" id="scale-note" hidden>weights/model.h not found: no reference lines in the speed and yaw rate charts.</p>
+      </section>
+    </div>
+    <div class="charts" id="charts"></div>
+  </main>
+</body>
+</html>
